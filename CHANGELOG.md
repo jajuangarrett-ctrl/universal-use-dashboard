@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 — 2026-09-22
+
+- Add Portal, a website-style resource library based on the Policies and Procedures dashboard.
+- Add Overview, resource finder, work-area directory, collection statistics, starting points, and recent updates.
+- Preserve existing layouts, live Bases data, original-note preview/edit actions, and voice integration.
+- Add Portal to folder defaults, responsive light/dark styles, and five focused live acceptance scenarios.
+
 ## 0.1.0 — 2026-09-22
 
 - Add Resource Hub and Program / Area templates on the public Obsidian Bases API.

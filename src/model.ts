@@ -3,7 +3,7 @@ export const BASE = '_dashboard.base';
 export const VIEW = 'fjg-universal-dashboard';
 export const SECTIONS = ['featured', 'pinned', 'folders', 'overview', 'resources', 'recent'] as const;
 export type Section = typeof SECTIONS[number];
-export type Layout = 'cards' | 'list' | 'compact' | 'table';
+export type Layout = 'cards' | 'list' | 'compact' | 'table' | 'portal';
 export type Template = 'resource-hub' | 'program-area';
 export interface FolderConfig {
   schema: 1; enabled: boolean; inherit: boolean; template: Template;
@@ -27,7 +27,7 @@ export function parseConfig(text: string): FolderConfig {
   }
   for (const key of ['title', 'description'] as const) if (typeof value[key] === 'string') d[key] = value[key];
   if (['resource-hub', 'program-area'].includes(value.template)) d.template = value.template;
-  if (['cards', 'list', 'compact', 'table'].includes(value.layout)) d.layout = value.layout;
+  if (['cards', 'list', 'compact', 'table', 'portal'].includes(value.layout)) d.layout = value.layout;
   if (['small', 'medium', 'large'].includes(value.cardSize)) d.cardSize = value.cardSize;
   if (['title', 'modified', 'status'].includes(value.sort)) d.sort = value.sort;
   for (const key of ['pinned', 'featured'] as const) if (Array.isArray(value[key])) d[key] = [...new Set<string>(value[key].filter((x: unknown) => typeof x === 'string'))];

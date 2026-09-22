@@ -1,6 +1,6 @@
 # FJG Universal Dashboard
 
-Reusable, live folder dashboards inside Obsidian. Choose **Resource Hub** or **Program / Area**, browse in Cards, List, Compact, or Table view, and preview or edit the original notes.
+Reusable, live folder dashboards inside Obsidian. Choose **Resource Hub** or **Program / Area**, browse in Portal, Cards, List, Compact, or Table view, and preview or edit the original notes.
 
 ## Start
 
@@ -12,6 +12,14 @@ Requires Obsidian 1.10+ with the **Bases** core plugin enabled. Install the thre
 4. Shift-click an enabled folder in the native file explorer or File Focus to open its dashboard. Ordinary folder clicks retain their normal behavior.
 
 Folders are explicitly enabled. Child folders inherit their nearest configured ancestor’s design when inheritance is enabled; a disabled ancestor blocks inheritance. Saving child settings creates a local override. Inherited children use their own folder names rather than copying the parent’s title, description, pins, or featured selections.
+
+## Portal view
+
+Choose **Portal** in the view switcher for a website-style resource library inspired by the Policies and Procedures dashboard. It provides a purple masthead, Overview / Find a resource / Work areas navigation, a serif search hero, collection statistics, work-area cards, useful starting points, and recent updates. Work areas group live resources by their first subfolder; direct files appear under General resources. Empty child folders remain discoverable.
+
+The finder searches resource titles, summaries, paths, and properties; it does not index full note bodies. Type and status filters, pagination, original-note previews, resource menus, voice, and new-note creation use the same existing dashboard data and actions. Live refresh preserves the search field’s focus and entered text. Folder defaults can be set to **Portal (website style)** in Dashboard settings; **Classic views** returns to the original controls. Portal is a native live presentation, with no generated HTML snapshot, network service, or duplicated notes.
+
+The Portal overview uses a fixed website page composition. Existing section visibility settings apply to its work areas, featured/pinned starting points, and recent resources; the Classic views retain custom section ordering.
 
 ## Working with resources
 

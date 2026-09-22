@@ -1,3 +1,4 @@
+import { Portal } from './portal';
 import { App, BasesView, Component, FuzzySuggestModal, MarkdownRenderer, Menu, Modal, Notice, Plugin, PluginSettingTab, QueryController, Setting, TAbstractFile, TFile, TFolder, debounce, normalizePath, parseYaml, setIcon } from 'obsidian';
 import { BASE, CONFIG, VIEW, FolderConfig, Layout, Resource, Section, ancestors, baseDocument, defaults, inherited, join, parseConfig, resource, safeName, select, within } from './model';
 
@@ -166,7 +167,7 @@ class FolderSettings extends Modal {
   new Setting(el).setName('Description').addTextArea(t=>t.setValue(c.description).onChange(v=>c.description=v));
   new Setting(el).setName('Child folders inherit this design').addToggle(t=>t.setValue(c.inherit).onChange(v=>c.inherit=v));
   new Setting(el).setName('Include descendants').addToggle(t=>t.setValue(c.descendants).onChange(v=>c.descendants=v));
-  new Setting(el).setName('Default view').addDropdown(d=>d.addOptions({cards:'Cards',list:'List',compact:'Compact',table:'Table'}).setValue(c.layout).onChange(v=>c.layout=v as Layout));
+  new Setting(el).setName('Default view').addDropdown(d=>d.addOptions({cards:'Cards',list:'List',compact:'Compact',table:'Table',portal:'Portal (website style)'}).setValue(c.layout).onChange(v=>c.layout=v as Layout));
   new Setting(el).setName('Card size').addDropdown(d=>d.addOptions({small:'Small',medium:'Medium',large:'Large'}).setValue(c.cardSize).onChange(v=>c.cardSize=v as FolderConfig['cardSize']));
   new Setting(el).setName('Sort').addDropdown(d=>d.addOptions({title:'Title',modified:'Last updated',status:'Status'}).setValue(c.sort).onChange(v=>c.sort=v as FolderConfig['sort']));
   el.createEl('h3',{text:'Sections'});
@@ -186,6 +187,7 @@ class DashboardView extends BasesView {
  private root:HTMLElement; private results!:HTMLElement; private stats!:HTMLElement;
  private query=''; private filters:Record<string,string>={}; private layout:Layout='cards'; private sort:FolderConfig['sort']='title';
  private cfg:FolderConfig=defaults(); private folder='/'; private source=''; private page=0; private generation=0; private signature='';private dead=false;
+ private portal:Portal|null=null;
  private items:Resource[]=[];private preview:NotePreview|null=null;
  constructor(controller:QueryController,parent:HTMLElement,private plugin:UniversalDashboard){super(controller);this.root=parent.createDiv('uud-dashboard');plugin.views.add(this);}
  dispose(){this.dead=true;this.generation++;this.preview?.close();this.root.remove();}
@@ -213,7 +215,7 @@ class DashboardView extends BasesView {
  }
  private refreshFacets(){for(const key of ['type','status','program','tags'] as const){const el=this.root.querySelector<HTMLSelectElement>(`select[aria-label="Filter by ${key}"]`);if(!el)continue;const values=[...new Set(this.items.flatMap(r=>r[key]).concat(this.filters[key]?[this.filters[key]]:[]))].sort();el.empty();el.createEl('option',{value:'',text:'All'});for(const value of values)el.createEl('option',{value,text:value});el.value=this.filters[key]||'';}}
  private build(){
-  const el=this.root;el.empty();el.setAttribute('data-accent',this.plugin.settings.accent);el.setAttribute('data-size',this.cfg.cardSize);
+  const el=this.root;el.empty();this.portal=null;el.classList.toggle('uud-portal',this.layout==='portal');if(this.layout==='portal'){this.buildPortal();return;}el.setAttribute('data-accent',this.plugin.settings.accent);el.setAttribute('data-size',this.cfg.cardSize);
   const crumbs=el.createEl('nav',{cls:'uud-breadcrumbs',attr:{'aria-label':'Dashboard folder navigation'}});
   button(crumbs,'Folders','folder-tree',()=>new FolderPicker(this.app,f=>this.plugin.openDashboard(f)).open());
   const segments=this.folder==='/'?[]:this.folder.split('/');segments.forEach((name,i)=>{crumbs.createSpan({text:' / ',cls:'uud-muted'});button(crumbs,name,'',()=>this.plugin.openDashboard(segments.slice(0,i+1).join('/')));});
@@ -229,7 +231,7 @@ class DashboardView extends BasesView {
   for(const action of this.plugin.actions.values())button(actions,action.label,action.icon,()=>action.run({folder:this.folder}));
   const toolbar=el.createDiv('uud-toolbar');const search=toolbar.createEl('input',{cls:'uud-search',type:'search',attr:{placeholder:'Search resources…','aria-label':'Search dashboard resources'}});search.value=this.query;
   search.addEventListener('input',()=>{this.query=search.value;this.page=0;this.renderResults();});
-  const views=toolbar.createDiv('uud-view-switch');for(const [key,icon] of [['cards','layout-grid'],['list','list'],['compact','rows-3'],['table','table']] as const){const b=button(views,key[0].toUpperCase()+key.slice(1),icon,()=>{this.layout=key;for(const child of Array.from(views.children))child.setAttribute('aria-pressed',String(child===b));this.renderResults();});b.setAttribute('aria-pressed',String(this.layout===key));}
+  const views=toolbar.createDiv('uud-view-switch');for(const [key,icon] of [['cards','layout-grid'],['list','list'],['compact','rows-3'],['table','table'],['portal','panels-top-left']] as const){const b=button(views,key[0].toUpperCase()+key.slice(1),icon,()=>{this.layout=key;if(key==='portal'){this.build();return;}for(const child of Array.from(views.children))child.setAttribute('aria-pressed',String(child===b));this.renderResults();});b.setAttribute('aria-pressed',String(this.layout===key));}
   const sorting=toolbar.createEl('select',{attr:{'aria-label':'Sort resources'}});for(const [value,text] of [['title','Title A–Z'],['modified','Recently updated'],['status','Status']])sorting.createEl('option',{value,text});sorting.value=this.sort;sorting.onchange=()=>{this.sort=sorting.value as FolderConfig['sort'];this.page=0;this.renderResults();};
   const filters=el.createDiv('uud-filters');
   for(const key of ['type','status','program','tags'] as const){const label=filters.createEl('label',{cls:'uud-filter'});label.createSpan({text:key==='tags'?'Tag':key[0].toUpperCase()+key.slice(1)});const sel=label.createEl('select',{attr:{'aria-label':`Filter by ${key}`}});sel.createEl('option',{value:'',text:'All'});const options=[...new Set(this.items.flatMap(r=>r[key]).concat(this.filters[key]?[this.filters[key]]:[]))].sort();for(const v of options)sel.createEl('option',{value:v,text:v});sel.value=this.filters[key]||'';sel.onchange=()=>{this.filters[key]=sel.value;this.page=0;this.renderResults();};}
@@ -243,7 +245,10 @@ class DashboardView extends BasesView {
   button(footer,'Create launcher note','file-plus',()=>this.launcher());
   if(this.source!==this.folder)footer.createSpan({cls:'uud-muted',text:`Design inherited from ${this.source.split('/').at(-1)||'vault root'}`});
  }
+ private portalData(){const folder=this.app.vault.getAbstractFileByPath(this.folder);return {title:this.cfg.title||(folder?.name||this.app.vault.getName()),folder:this.folder,description:this.cfg.description,items:this.items,config:this.cfg,pageSize:this.plugin.settings.pageSize,folders:folder instanceof TFolder?folder.children.filter((f):f is TFolder=>f instanceof TFolder).map(f=>({name:f.name,path:f.path})):[]};}
+ private buildPortal(){this.portal=new Portal(this.root,this.portalData(),{classic:()=>{this.layout='cards';this.build();this.renderResults();},settings:()=>{const f=this.app.vault.getAbstractFileByPath(this.folder);if(f instanceof TFolder)return this.plugin.editSettings(f);},refresh:()=>this.onDataUpdated(),newNote:()=>new NewNote(this.plugin,this.folder).open(),talk:()=>this.plugin.talk(this.folder),open:r=>this.openResource(r),menu:(el,r)=>this.resourceMenu(el,r),openFolder:path=>this.plugin.openDashboard(path),error:showError});}
  private renderResults(){
+  if(this.portal){this.portal.update(this.portalData());return;}
   if(!this.results)return;this.results.empty();const items=select(this.items,this.query,this.filters,this.sort);this.stats.setText(`${this.items.length} resources · ${new Set(this.items.flatMap(x=>x.tags)).size} categories · Live from your vault`);
   const resultLabel=this.results.createDiv({cls:'uud-result-count',attr:{role:'status','aria-live':'polite'},text:`${items.length} of ${this.items.length} resources`});
   if(!items.length){const empty=this.results.createDiv('uud-empty');setIcon(empty.createDiv(),'search');empty.createEl('h3',{text:this.items.length?'No matching resources':'This folder is ready for its first resource'});empty.createEl('p',{text:this.items.length?'Try a different search or clear your filters.':'Create a note or add files to this folder. They will appear here automatically.'});}
