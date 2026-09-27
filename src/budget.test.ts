@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseBudget,amounts} from './budget';
+import {defaults,parseConfig,resource,select,excerpt} from './model';
+test('new template settings round trip and old defaults remain compatible',()=>{for(const template of ['notion','budget'])assert.equal(parseConfig(JSON.stringify({...defaults(),template})).template,template);assert.equal(defaults().template,'resource-hub');});
+test('body-only multiword matches retain facet and scope inputs',()=>{const r={...resource('a.md','Neutral','md',1,{status:'active'}),content:'The emerald lantern appears only inside this document.'};assert.equal(select([r],'emerald lantern',{},'title').length,1);assert.equal(select([r],'emerald',{status:'closed'},'title').length,0);assert.match(excerpt(r,'lantern'),/emerald lantern/);assert.equal(select([r],'missing phrase',{},'title').length,0);});
+const fixture=`Test Budgets — Remaining by Line Item\nFiscal Year 2025–26\nCollective rollup (1 fund(s) on this sheet)\n$100 $0 $100 $0 $5 $120 -$25\nFund 1000 — Test · dept(s) 40000 · activity 600000\n4999 Supplies $100 $0 $100 $5 $120 -$25\nFUND TOTAL $100 $0 $100 $5 $120 -$25`;
+test('budget extraction preserves signed cents and validates totals',()=>{assert.deepEqual(amounts('-$2,775 $131.39'),[-277500,13139]);const r=parseBudget([fixture]);assert.equal(r.funds[0].rows[0].values[5],-2500);assert.equal(r.funds[0].rows[0].page,1);assert.deepEqual(r.warnings,[]);});
+test('unsupported or incomplete reports and mismatched totals are explicit',()=>{assert.ok(parseBudget(['Unstructured PDF']).warnings.length);assert.ok(parseBudget([fixture.replace('4999 Supplies $100','4999 Supplies $90')]).warnings.length);assert.ok(parseBudget([fixture.replace('4999 Supplies $100 $0 $100 $5 $120 -$25','4999 Supplies $100')]).warnings.length);});

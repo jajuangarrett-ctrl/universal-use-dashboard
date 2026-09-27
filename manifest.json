@@ -1,9 +1,9 @@
 {
   "id": "universal-use-dashboard",
   "name": "FJG Universal Dashboard",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minAppVersion": "1.10.0",
-  "description": "Resource Hub and Program dashboards for any enabled folder, powered by Bases, with portable settings and File Focus voice integration.",
+  "description": "Live Resource Hub, Program, Notion-style tabs, and PDF Budget dashboards with document-content search.",
   "author": "Franklin Garrett",
   "isDesktopOnly": false
 }

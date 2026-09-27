@@ -1,3 +1,4 @@
+import { excerpt } from './model';
 import { setIcon } from 'obsidian';
 import type { FolderConfig, Resource } from './model';
 import { select } from './model';
@@ -110,7 +111,7 @@ export class Portal {
  }
  private topics():void {this.heading(this.main,'Collection directory','Browse by work area','Choose an area to explore its resources.');this.topicCards(this.main);}
  private library():void {
-  this.heading(this.main,'Resource finder','Find a resource','Search titles, summaries, paths, and existing note properties.');
+  this.heading(this.main,'Resource finder','Find a resource','Search titles, note bodies, PDFs, embedded documents, and properties.');
   const filters=this.main.createDiv('uud-web-filters');
   const label=filters.createEl('label');label.createSpan({text:'Search resources'});const input=label.createEl('input',{type:'search',attr:{'aria-label':'Search portal resources',placeholder:'Enter a title, topic, or keyword'}});input.value=this.query;input.oninput=()=>{this.query=input.value;this.page=0;this.results();};
   for(const [key,labelText] of [['area','Work area'],['type','Type'],['status','Status']] as const){const label=filters.createEl('label');label.createSpan({text:labelText});const field=label.createEl('select',{attr:{'aria-label':`Portal ${labelText.toLowerCase()}`}});field.dataset.facet=key;field.onchange=()=>{if(key==='area')this.area=field.value;else if(key==='type')this.type=field.value;else this.statusFilter=field.value;this.page=0;this.results();};}
@@ -124,11 +125,11 @@ export class Portal {
  private results():void {
   if(!this.resultEl)return;this.resultEl.empty();const filters={...this.defaultFilters,type:this.type,status:this.statusFilter};
   const items=select(this.data.items,this.query,filters,this.data.config.sort).filter(r=>!this.area||areaFor(r,this.data.folder)===this.area);
-  this.resultEl.createDiv({cls:'uud-web-count',text:`${items.length} matching resource${items.length===1?'':'s'}`,attr:{role:'status','aria-live':'polite'}});
+  this.resultEl.createDiv({cls:'uud-web-count',text:`${items.length} matching resource${items.length===1?'':'s'}${this.data.items.some(r=>r.content===undefined)?' · Reading document contents…':''}${this.data.items.some(r=>r.contentError)?' · Some document text is unavailable':''}`,attr:{role:'status','aria-live':'polite'}});
   const folder=this.data.folders.find(f=>f.name===this.area);if(folder)this.btn(this.resultEl,'Open '+folder.name+' dashboard',()=>this.actions.openFolder(folder.path),'uud-web-link');
   if(!items.length){this.empty(this.resultEl,'No matching resources','Try a broader keyword, choose another work area, or clear the filters.');return;}
   const size=this.data.pageSize;const pages=Math.max(1,Math.ceil(items.length/size));this.page=Math.min(this.page,pages-1);
-  const grid=this.resultEl.createDiv('uud-web-library');for(const r of items.slice(this.page*size,(this.page+1)*size)){const card=grid.createEl('article',{cls:'uud-web-resource'});const top=card.createDiv('uud-web-topic-top');top.createSpan({text:areaFor(r,this.data.folder)});top.createSpan({text:r.type.join(' · ')});const h=card.createEl('h3');this.btn(h,r.title,()=>this.actions.open(r),'uud-web-title');if(r.description)card.createEl('p',{text:r.description});card.createDiv({cls:'uud-web-meta',text:[...r.status,`Updated ${new Date(r.mtime).toLocaleDateString()}`].join(' · ')});const actions=card.createDiv('uud-web-actions');this.btn(actions,'View resource →',()=>this.actions.open(r));const more=this.btn(actions,'Resource actions',()=>this.actions.menu(more,r),'','ellipsis');}
+  const grid=this.resultEl.createDiv('uud-web-library');for(const r of items.slice(this.page*size,(this.page+1)*size)){const card=grid.createEl('article',{cls:'uud-web-resource'});const top=card.createDiv('uud-web-topic-top');top.createSpan({text:areaFor(r,this.data.folder)});top.createSpan({text:r.type.join(' · ')});const h=card.createEl('h3');this.btn(h,r.title,()=>this.actions.open(r),'uud-web-title');if(r.description)card.createEl('p',{text:r.description});const match=excerpt(r,this.query);if(match)card.createEl('p',{cls:'uud-match',text:match});card.createDiv({cls:'uud-web-meta',text:[...r.status,`Updated ${new Date(r.mtime).toLocaleDateString()}`].join(' · ')});const actions=card.createDiv('uud-web-actions');this.btn(actions,'View resource →',()=>this.actions.open(r));const more=this.btn(actions,'Resource actions',()=>this.actions.menu(more,r),'','ellipsis');}
   if(pages>1){const pager=this.resultEl.createDiv('uud-web-pagination');this.btn(pager,'Previous',()=>{this.page--;this.results();}).disabled=this.page===0;pager.createSpan({text:`Page ${this.page+1} of ${pages}`});this.btn(pager,'Next',()=>{this.page++;this.results();}).disabled=this.page===pages-1;}
  }
  private row(parent:HTMLElement,r:Resource):void {const row=parent.createDiv('uud-web-row');const text=row.createDiv();this.btn(text,r.title+' →',()=>this.actions.open(r),'uud-web-title');text.createEl('p',{text:`${areaFor(r,this.data.folder)} · ${new Date(r.mtime).toLocaleDateString()}`});row.createSpan({cls:'uud-web-badge',text:r.type[0]||'Note'});}

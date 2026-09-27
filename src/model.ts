@@ -4,7 +4,7 @@ export const VIEW = 'fjg-universal-dashboard';
 export const SECTIONS = ['featured', 'pinned', 'folders', 'overview', 'resources', 'recent'] as const;
 export type Section = typeof SECTIONS[number];
 export type Layout = 'cards' | 'list' | 'compact' | 'table' | 'portal';
-export type Template = 'resource-hub' | 'program-area';
+export type Template = 'resource-hub' | 'program-area' | 'notion' | 'budget';
 export interface FolderConfig {
   schema: 1; enabled: boolean; inherit: boolean; template: Template;
   title: string; description: string; layout: Layout; descendants: boolean;
@@ -26,7 +26,7 @@ export function parseConfig(text: string): FolderConfig {
     if (key in value) d[key] = value[key];
   }
   for (const key of ['title', 'description'] as const) if (typeof value[key] === 'string') d[key] = value[key];
-  if (['resource-hub', 'program-area'].includes(value.template)) d.template = value.template;
+  if (['resource-hub', 'program-area', 'notion', 'budget'].includes(value.template)) d.template = value.template;
   if (['cards', 'list', 'compact', 'table', 'portal'].includes(value.layout)) d.layout = value.layout;
   if (['small', 'medium', 'large'].includes(value.cardSize)) d.cardSize = value.cardSize;
   if (['title', 'modified', 'status'].includes(value.sort)) d.sort = value.sort;
@@ -59,7 +59,7 @@ export function strings(value: unknown): string[] {
   return typeof value === 'string' || typeof value === 'number' ? [String(value)] : [];
 }
 export interface Resource {
-  path: string; title: string; description: string; icon: string; image: string;
+  content?: string; contentError?: string; path: string; title: string; description: string; icon: string; image: string;
   type: string[]; status: string[]; program: string[]; tags: string[];
   mtime: number; featured: boolean; pinned: boolean;
 }
@@ -72,7 +72,7 @@ export function resource(path: string, basename: string, extension: string, mtim
 }
 export function select(items: Resource[], query: string, filters: Record<string, string>, sort: FolderConfig['sort']): Resource[] {
   const words = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
-  return items.filter(r => words.every(w => [r.title, r.description, r.path, ...r.tags, ...r.type, ...r.status, ...r.program].join(' ').toLocaleLowerCase().includes(w)) &&
+  return items.filter(r => words.every(w => [r.title, r.description, r.path, r.content || '', ...r.tags, ...r.type, ...r.status, ...r.program].join(' ').toLocaleLowerCase().includes(w)) &&
     Object.entries(filters).every(([k,v]) => !v || (['type','status','program','tags'].includes(k) && (r[k as 'type'] as string[]).includes(v))))
     .sort((a,b) => sort === 'modified' ? b.mtime-a.mtime || a.path.localeCompare(b.path) : sort === 'status' ? a.status.join().localeCompare(b.status.join()) || a.title.localeCompare(b.title) : a.title.localeCompare(b.title, undefined, {numeric:true}));
 }
@@ -80,4 +80,8 @@ export function safeName(name: string): string {
   const trimmed = name.trim().replace(/\.md$/i, '');
   if (!trimmed || /[\\/:*?"<>|\x00-\x1f]/.test(trimmed) || trimmed === '.' || trimmed === '..' || trimmed.startsWith('.')) throw new Error('Use a note name without slashes or reserved characters.');
   return trimmed + '.md';
+}
+
+export function excerpt(r:Resource,query:string):string {
+ const text=(r.content||'').replace(/\s+/g,' ');const word=query.trim().toLocaleLowerCase().split(/\s+/).find(w=>text.toLocaleLowerCase().includes(w));if(!word)return '';const index=text.toLocaleLowerCase().indexOf(word);return (index>70?'…':'')+text.slice(Math.max(0,index-70),index+190)+(index+190<text.length?'…':'');
 }

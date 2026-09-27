@@ -30,3 +30,44 @@
 @container(max-width:600px){.uud-portal .uud-web-hero,.uud-portal .uud-web-split{grid-template-columns:1fr;gap:20px}.uud-portal .uud-web-header{gap:14px;padding-top:20px}.uud-portal .uud-web-finder{padding:22px 19px}.uud-portal .uud-web-snapshot{padding:0}.uud-portal .uud-web-topics,.uud-portal .uud-web-library{grid-template-columns:1fr}.uud-portal .uud-web-main{padding-top:22px}.uud-portal .uud-web-filters{display:grid;grid-template-columns:1fr}.uud-portal .uud-web-filters label,.uud-portal .uud-web-filters label:first-child{min-width:0}.uud-portal .uud-web-nav{gap:3px}.uud-portal .uud-web-nav button{font-size:11px;padding:8px}.uud-portal .uud-web-source{align-items:flex-start}.uud-portal .uud-web-button{min-height:40px}.uud-portal .uud-web-title{min-height:0}.uud-portal .uud-web-section-head{gap:8px}.uud-portal .uud-web-section-head h2{font-size:17px}}
 
 .uud-view-switch{flex-wrap:wrap}
+
+/* Tabbed document and source-backed budget templates. */
+.uud-notion {padding:24px 36px 60px!important;max-width:1500px;margin:auto;color:var(--text-normal);font-family:var(--font-interface);}
+.uud-notion-crumb{font-size:12px;color:var(--text-muted);margin-bottom:56px;overflow-wrap:anywhere;}
+.uud-notion-header h1{font:700 36px/1.2 var(--font-interface);margin:12px 0;letter-spacing:-.8px;}
+.uud-notion-icon{font-size:36px;color:var(--text-accent);}
+.uud-notion-header p{color:var(--text-muted);}
+.uud-notion-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:24px 0 10px;}
+.uud-notion-controls label{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;}
+.uud-notion-controls input{max-width:100%;}
+.uud-content-status{font-size:12px;color:var(--text-muted);margin:8px 0 18px;}
+.uud-notion-tabs{display:flex;gap:5px;border-bottom:1px solid var(--background-modifier-border);padding-bottom:10px;overflow-x:auto;}
+.uud-notion-tabs button{border:0;background:transparent;box-shadow:none;white-space:nowrap;color:var(--text-muted);border-radius:6px;padding:7px 12px;}
+.uud-notion-tabs button[aria-selected=true]{background:var(--background-modifier-hover);color:var(--text-normal);font-weight:600;}
+.uud-notion-panel{padding:14px 0;min-width:0;}
+.uud-table-scroll{width:100%;overflow-x:auto;margin:12px 0 24px;}
+.uud-notion-table,.uud-budget-table{width:100%;border-collapse:collapse;font-size:13px;}
+.uud-notion-table th{color:var(--text-muted);font-weight:500;text-align:left;}
+.uud-notion-table td,.uud-notion-table th{padding:10px 12px;border-bottom:1px solid var(--background-modifier-border);}
+.uud-notion-title,.uud-source-link{background:transparent!important;border:0!important;box-shadow:none!important;text-align:left;white-space:normal;height:auto;}
+.uud-notion-title{padding:0!important;font-weight:500;}
+.uud-notion-badge{background:var(--background-modifier-hover);border-radius:4px;padding:2px 6px;display:inline-block;}
+.uud-notion-folder{display:block;margin:8px 0;}
+.uud-match{font-size:12px;color:var(--text-muted);max-width:680px;overflow-wrap:anywhere;}
+.uud-budget-report{margin:16px 0 42px;}
+.uud-budget-report h2{font-size:26px;line-height:1.25;margin-bottom:8px;}
+.uud-budget-report h3{font-size:18px;line-height:1.4;margin-top:28px;}
+.uud-budget-report>p{font-size:13px;}
+.uud-budget-table{min-width:850px;font-variant-numeric:tabular-nums;}
+.uud-budget-table th{background:#202b3b;color:#fff;text-align:right;padding:10px;white-space:nowrap;}
+.uud-budget-table td{border:1px solid var(--background-modifier-border);padding:8px 10px;text-align:right;white-space:nowrap;}
+.uud-budget-table td.uud-budget-label{text-align:left;white-space:normal;min-width:150px;}
+.uud-budget-table tr:nth-child(even){background:var(--background-secondary);}
+.uud-budget-table .uud-budget-total{background:var(--background-secondary);font-weight:700;}
+.uud-budget-table .uud-positive{color:#00855c;}.uud-budget-table .uud-negative{color:#cc3030;}
+.theme-dark .uud-budget-table .uud-positive{color:#71d9b2;}.theme-dark .uud-budget-table .uud-negative{color:#ff8b8b;}
+.uud-import-warning{padding:10px 14px;border-left:3px solid var(--text-warning);background:var(--background-secondary);font-size:13px;}
+@media(max-width:600px){.uud-notion{padding:16px!important;}.uud-notion-header h1{font-size:28px;}.uud-notion-controls label{margin-left:0;}.uud-notion-crumb{margin-bottom:28px;}}
+
+.uud-notion-header h1,.uud-budget-report h2,.uud-budget-report h3{color:var(--text-normal);}
+.uud-budget-note{font-weight:500;color:var(--text-muted);}

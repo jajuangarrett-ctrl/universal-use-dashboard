@@ -1,3 +1,10 @@
+## 0.3.0 — 2026-09-27
+
+- Add Notion-style tabbed and source-backed PDF Budget templates.
+- Search note bodies, selectable PDF text, and nested embedded local documents in all layouts, with matching excerpts.
+- Import Remaining by Line Item reports with signed-cent accounting, source links, page references, and reconciliation warnings.
+- Preserve Resource Hub, Program / Area, and Portal workflows.
+
 # Changelog
 
 ## 0.2.0 — 2026-09-22
