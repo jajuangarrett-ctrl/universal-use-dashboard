@@ -97,3 +97,9 @@ Overview displays each report's collective rollup. Program tabs display the roll
 The parser retains integer cents, reconciles rows with fund totals and funds with rollups, and warns on incomplete/unsupported formats or discrepancies. It preserves reported remaining amounts rather than replacing them with inferred calculations. This new template includes every source account line, matching the requested screenshot; it does not alter the separate existing Budget Dashboard's account restrictions. PDFs with other layouts need an additional parser or must be opened in their native viewer.
 
 The September folder is configured at `03 Areas/Fiscal/September 2026/_dashboard.base`. Its title refers to the folder month; the displayed report metadata preserves fiscal year 2025–26 and source export dates from the PDFs.
+
+### Objectives and supporting files (0.3.2)
+
+Tasks includes every scoped file under a matching task folder, plus navigation to task subfolders (including empty folders). Objective `task.md` records with a `task_id` are labeled **Objective** and show status, due date, and project. Supporting documents retain their normal file types.
+
+When FJG Objective Manager is enabled, its current workspace record is resolved by exact task ID. If the local task note is an older copy, the current title/status/due/project and content are displayed, with the current path shown; archived records are labeled Archived. **Open objective** uses Objective Manager's existing `openTask(id)` method, which opens its authoritative task note. Preview/edit also targets that current record. If the integration is unavailable or the ID is not indexed, the local note remains available. No tasks are copied, moved, unarchived, or created by this integration. Only objectives associated with a scoped task.md ID are included; unrelated global objectives are not inferred from folder names.

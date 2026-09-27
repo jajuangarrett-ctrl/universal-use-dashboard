@@ -1,3 +1,9 @@
+## 0.3.2 — 2026-09-27
+
+- Show task subfolders alongside all supporting files in the Tasks tab.
+- Display objective identity, status, due date, project, and an Open objective action.
+- Resolve moved/archived objectives through Objective Manager by exact task ID, retaining local-note fallback.
+
 ## 0.3.1 — 2026-09-27
 
 - Match Notion Tasks by folder names containing Task, including nested contents.

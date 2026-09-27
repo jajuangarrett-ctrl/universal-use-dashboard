@@ -5,11 +5,13 @@ import { select } from './model';
 
 export interface PortalData {
  title: string; folder: string; description: string; items: Resource[];
+ taskFolders?: {name:string;path:string}[];
  folders: { name: string; path: string }[]; config: FolderConfig; pageSize: number;
 }
 export interface PortalActions {
  classic(): void; settings(): unknown; refresh(): unknown; newNote(): unknown;
  talk(): unknown; open(resource: Resource): unknown; menu(anchor: HTMLElement, resource: Resource): unknown;
+ openObjective?(resource:Resource): unknown;
  openFolder(path: string): unknown; error(error: unknown): void;
 }
 type Route = 'overview' | 'library' | 'topics';

@@ -28,3 +28,9 @@ test('Content includes all scoped items and tab membership still composes with s
  assert.equal(select(items,'b.pdf',{},'title').filter(r=>inNotionTab(r,'Attachments','Area')).length,1);
  assert.equal(select(items,'missing',{},'title').filter(r=>inNotionTab(r,'Tasks','Area')).length,0);
 });
+test('objective records retain identity, status, due and project without classifying support files as objectives',()=>{
+ const r=resource('Area/Tasks/Example/task.md','task','md',1,{task_id:'tsk_example',title:'Example',status:'do-first',due:'2026-10-01',project:'Review'});
+ assert.equal(r.objectiveId,'tsk_example');assert.deepEqual(r.type,['Objective']);assert.equal(r.due,'2026-10-01');assert.equal(r.project,'Review');assert.deepEqual(r.status,['do-first']);
+ assert.equal(resource('Area/Tasks/Example/updates.md','updates','md',1,{task_id:'tsk_example'}).objectiveId,undefined);
+ assert.equal(inNotionTab(r,'Tasks','Area/Tasks'),true);
+});

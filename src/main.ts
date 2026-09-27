@@ -3,7 +3,7 @@ import { Tabbed, BudgetSource } from './tabbed';
 import { parseBudget } from './budget';
 import { Portal } from './portal';
 import { App, BasesView, Component, FuzzySuggestModal, MarkdownRenderer, Menu, Modal, Notice, Plugin, PluginSettingTab, QueryController, Setting, TAbstractFile, TFile, TFolder, debounce, normalizePath, parseYaml, setIcon } from 'obsidian';
-import { BASE, CONFIG, VIEW, FolderConfig, Layout, Resource, Section, ancestors, baseDocument, defaults, inherited, join, parseConfig, resource, safeName, select, within, excerpt, isAttachmentPath } from './model';
+import { BASE, CONFIG, VIEW, FolderConfig, Layout, Resource, Section, ancestors, baseDocument, defaults, inherited, join, parseConfig, resource, safeName, select, within, excerpt, isAttachmentPath, strings } from './model';
 
 type Companion = { openVaultVoice?: (context: {folder: string; note: string}) => void };
 type InternalApp = App & {plugins: {getPlugin(id:string): Companion | undefined}; internalPlugins: {getPluginById(id:string): {enabled?:boolean;instance?:any} | undefined}};
@@ -211,6 +211,12 @@ class DashboardView extends BasesView {
    if(seen.has(f.path)||[BASE,CONFIG].includes(f.name)||!within(f.path,path,this.cfg.descendants))continue;
    seen.add(f.path);const fm=this.app.metadataCache.getFileCache(f)?.frontmatter||{};
    const r=resource(f.path,f.basename,f.extension,f.stat.mtime,fm);
+   if(r.objectiveId){
+    const manager=(this.app as any).plugins.getPlugin('fjg-task-manager');
+    try{const current=manager?.workspaceService?.getById(r.objectiveId);
+     if(current?.record?.task_id===r.objectiveId&&current.taskFile instanceof TFile){const record=current.record;r.objectivePath=current.taskFile.path;r.title=strings(record.title)[0]||r.title;r.status=[...strings(record.status),...(record.archived_at?['Archived']:[])];r.due=strings(record.due)[0]||'';r.project=strings(record.project)[0]||'';r.mtime=current.taskFile.stat.mtime;}
+    }catch{/* The local objective note remains usable when absent from the manager index. */}
+   }
    const cache=this.app.metadataCache.getFileCache(f);
    r.hasAttachments=[...(cache?.links||[]),...(cache?.embeds||[])].some(link=>{
     const target=this.app.metadataCache.getFirstLinkpathDest(link.link.split('#')[0],f.path);
@@ -224,7 +230,7 @@ class DashboardView extends BasesView {
   if(signature!==this.signature){this.signature=signature;this.filters={...this.cfg.filters};this.layout=this.cfg.layout;this.sort=this.cfg.sort;this.page=0;this.build();}
   this.refreshFacets();this.renderResults();
   let cursor=0;const budgets:BudgetSource[]=[];
-  await Promise.all(Array.from({length:Math.min(4,items.length)},async()=>{while(cursor<items.length){if(gen!==this.generation||this.dead)return;const r=items[cursor++];const f=this.app.vault.getAbstractFileByPath(r.path);if(!(f instanceof TFile))continue;const text=await this.plugin.content.searchable(f);r.content=text.text;r.contentError=text.error;if(this.cfg.template==='budget'&&f.extension.toLowerCase()==='pdf')budgets.push({path:f.path,report:text.pages.length?parseBudget(text.pages):undefined,error:text.error});}}));
+  await Promise.all(Array.from({length:Math.min(4,items.length)},async()=>{while(cursor<items.length){if(gen!==this.generation||this.dead)return;const r=items[cursor++];const f=this.app.vault.getAbstractFileByPath(r.objectivePath||r.path);if(!(f instanceof TFile))continue;const text=await this.plugin.content.searchable(f);r.content=text.text;r.contentError=text.error;if(this.cfg.template==='budget'&&f.extension.toLowerCase()==='pdf')budgets.push({path:f.path,report:text.pages.length?parseBudget(text.pages):undefined,error:text.error});}}));
   if(gen!==this.generation||this.dead)return;this.budgets=budgets.sort((a,b)=>a.path.localeCompare(b.path));this.renderResults();
  }
  private refreshFacets(){for(const key of ['type','status','program','tags'] as const){const el=this.root.querySelector<HTMLSelectElement>(`select[aria-label="Filter by ${key}"]`);if(!el)continue;const values=[...new Set(this.items.flatMap(r=>r[key]).concat(this.filters[key]?[this.filters[key]]:[]))].sort();el.empty();el.createEl('option',{value:'',text:'All'});for(const value of values)el.createEl('option',{value,text:value});el.value=this.filters[key]||'';}}
@@ -259,8 +265,11 @@ class DashboardView extends BasesView {
   button(footer,'Create launcher note','file-plus',()=>this.launcher());
   if(this.source!==this.folder)footer.createSpan({cls:'uud-muted',text:`Design inherited from ${this.source.split('/').at(-1)||'vault root'}`});
  }
- private portalData(){const folder=this.app.vault.getAbstractFileByPath(this.folder);return {title:this.cfg.title||(folder?.name||this.app.vault.getName()),folder:this.folder,description:this.cfg.description,items:this.items,config:this.cfg,pageSize:this.plugin.settings.pageSize,folders:folder instanceof TFolder?folder.children.filter((f):f is TFolder=>f instanceof TFolder).map(f=>({name:f.name,path:f.path})):[]};}
- private portalActions(){return {classic:()=>{this.layout='cards';this.build();this.renderResults();},settings:()=>{const f=this.app.vault.getAbstractFileByPath(this.folder);if(f instanceof TFolder)return this.plugin.editSettings(f);},refresh:()=>{this.plugin.content.clear();this.onDataUpdated();},newNote:()=>new NewNote(this.plugin,this.folder).open(),talk:()=>this.plugin.talk(this.folder),open:(r:Resource)=>this.openResource(r),menu:(el:HTMLElement,r:Resource)=>this.resourceMenu(el,r),openFolder:(path:string)=>this.plugin.openDashboard(path),error:showError};}
+ private portalData(){const folder=this.app.vault.getAbstractFileByPath(this.folder);const taskFolders:{name:string;path:string}[]=[];
+  const visit=(parent:TFolder,inTasks:boolean)=>{for(const child of parent.children){if(!(child instanceof TFolder))continue;const matches=inTasks||child.name.toLowerCase().includes('task');if(matches)taskFolders.push({name:child.path.slice(this.folder==='/'?0:this.folder.length+1),path:child.path});if(this.cfg.descendants)visit(child,matches);}};
+  if(folder instanceof TFolder)visit(folder,folder.name.toLowerCase().includes('task'));
+  return {taskFolders,title:this.cfg.title||(folder?.name||this.app.vault.getName()),folder:this.folder,description:this.cfg.description,items:this.items,config:this.cfg,pageSize:this.plugin.settings.pageSize,folders:folder instanceof TFolder?folder.children.filter((f):f is TFolder=>f instanceof TFolder).map(f=>({name:f.name,path:f.path})):[]};}
+ private portalActions(){return {classic:()=>{this.layout='cards';this.build();this.renderResults();},settings:()=>{const f=this.app.vault.getAbstractFileByPath(this.folder);if(f instanceof TFolder)return this.plugin.editSettings(f);},refresh:()=>{this.plugin.content.clear();this.onDataUpdated();},newNote:()=>new NewNote(this.plugin,this.folder).open(),talk:()=>this.plugin.talk(this.folder),open:(r:Resource)=>this.openResource(r),openObjective:(r:Resource)=>this.openObjective(r),menu:(el:HTMLElement,r:Resource)=>this.resourceMenu(el,r),openFolder:(path:string)=>this.plugin.openDashboard(path),error:showError};}
  private buildPortal(){this.portal=new Portal(this.root,this.portalData(),this.portalActions());}
  private renderResults(){
   if(this.tabbed){this.tabbed.update(this.portalData(),this.budgets);return;}
@@ -302,12 +311,19 @@ class DashboardView extends BasesView {
  private renderRow(body:HTMLElement,r:Resource){const row=body.createEl('tr');const name=row.createEl('td');button(name,r.title,'file-text',()=>this.openResource(r));const match=excerpt(r,this.query);if(match)name.createEl('p',{cls:'uud-match',text:match});row.createEl('td',{text:r.type.join(', ')});row.createEl('td',{text:r.status.join(', ')||'—'});row.createEl('td',{text:new Date(r.mtime).toLocaleDateString()});const cell=row.createEl('td');const b=button(cell,'Resource actions','ellipsis',()=>this.resourceMenu(b,r),'uud-icon-button');}
  private resourceMenu(anchor:HTMLElement,r:Resource){const menu=new Menu();menu.addItem(i=>i.setTitle('Preview').setIcon('eye').onClick(()=>this.openResource(r)));
   menu.addItem(i=>i.setTitle('Edit note').setIcon('pencil').setDisabled(!r.path.endsWith('.md')).onClick(()=>this.openResource(r,true)));
-  menu.addItem(i=>i.setTitle('Open in tab').setIcon('external-link').onClick(()=>this.app.workspace.openLinkText(r.path,'',true)));
+  menu.addItem(i=>i.setTitle('Open in tab').setIcon('external-link').onClick(()=>this.app.workspace.openLinkText(r.objectivePath||r.path,'',true)));
   for(const key of ['pinned','featured'] as const){const fromProperty=this.app.metadataCache.getFileCache(this.app.vault.getAbstractFileByPath(r.path) as TFile)?.frontmatter?.[key]===true;menu.addItem(i=>i.setTitle(fromProperty?`${key==='pinned'?'Pinned':'Featured'} in note properties`:r[key]?`Remove ${key==='pinned'?'pin':'feature'}`:key==='pinned'?'Pin resource':'Feature resource').setIcon(key==='pinned'?'pin':'star').setDisabled(fromProperty).onClick(()=>this.plugin.pin(this.folder,r.path,key).catch(showError)));}
   menu.addItem(i=>i.setTitle('Talk about this note').setIcon('mic').onClick(()=>this.plugin.talk(this.folder,r.path)));
   const rect=anchor.getBoundingClientRect();menu.showAtPosition({x:rect.left,y:rect.bottom});
  }
- private openResource(r:Resource,edit=false){const f=this.app.vault.getAbstractFileByPath(r.path);if(!(f instanceof TFile)){new Notice('This resource moved or was removed. Refresh the dashboard.');return;}this.preview?.close();this.preview=new NotePreview(this.plugin,f,edit);this.preview.open();}
+ private async openObjective(r:Resource){
+  const manager=(this.app as any).plugins.getPlugin('fjg-task-manager');
+  if(r.objectiveId&&typeof manager?.openTask==='function'){
+   try{await manager.openTask(r.objectiveId);return;}catch{new Notice('Objective Manager could not resolve this ID. Opening the original objective note.');}
+  }
+  const file=this.app.vault.getAbstractFileByPath(r.objectivePath||r.path);if(file instanceof TFile)await this.app.workspace.getLeaf('tab').openFile(file);else throw new Error('The objective note is no longer available. Refresh the dashboard.');
+ }
+ private openResource(r:Resource,edit=false){const f=this.app.vault.getAbstractFileByPath(r.objectivePath||r.path);if(!(f instanceof TFile)){new Notice('This resource moved or was removed. Refresh the dashboard.');return;}this.preview?.close();this.preview=new NotePreview(this.plugin,f,edit);this.preview.open();}
  private async launcher(){const path=join(this.folder,'Dashboard.md');if(this.app.vault.getAbstractFileByPath(path))throw new Error('Dashboard.md already exists. It has been left unchanged.');const url=`obsidian://fjg-dashboard?vault=${encodeURIComponent(this.app.vault.getName())}&folder=${encodeURIComponent(this.folder)}`;const file=await this.app.vault.create(path,`# ${this.cfg.title||'Folder dashboard'}\n\n[Open dashboard](${url})\n\n![[${join(this.folder,BASE)}]]\n`);await this.app.workspace.getLeaf('tab').openFile(file);}
 }
 

@@ -59,20 +59,20 @@ export function strings(value: unknown): string[] {
   return typeof value === 'string' || typeof value === 'number' ? [String(value)] : [];
 }
 export interface Resource {
-  content?: string; contentError?: string; hasAttachments?: boolean; path: string; title: string; description: string; icon: string; image: string;
+  content?: string; contentError?: string; hasAttachments?: boolean; objectiveId?: string; objectivePath?: string; due?: string; project?: string; path: string; title: string; description: string; icon: string; image: string;
   type: string[]; status: string[]; program: string[]; tags: string[];
   mtime: number; featured: boolean; pinned: boolean;
 }
 export function resource(path: string, basename: string, extension: string, mtime: number, fm: Record<string, unknown> = {}): Resource {
-  return {path, title: strings(fm.title)[0] || basename, description: strings(fm.summary ?? fm.description)[0] || '',
+  return {path, objectiveId: basename.toLowerCase()==='task' ? strings(fm.task_id)[0] : undefined, due: strings(fm.due)[0] || '', project: strings(fm.project)[0] || '', title: strings(fm.title)[0] || basename, description: strings(fm.summary ?? fm.description)[0] || '',
     icon: strings(fm.icon)[0] || '', image: strings(fm.banner ?? fm.image)[0] || '',
-    type: strings(fm.type).length ? strings(fm.type) : [extension.toUpperCase()], status: strings(fm.status), program: strings(fm.program),
+    type: basename.toLowerCase()==='task' && strings(fm.task_id)[0] ? ['Objective'] : strings(fm.type).length ? strings(fm.type) : [extension.toUpperCase()], status: strings(fm.status), program: strings(fm.program),
     tags: strings(fm.tags).flatMap(x => x.split(/[,\s]+/)).map(x => x.replace(/^#/, '')).filter(Boolean),
     mtime, featured: fm.featured === true, pinned: fm.pinned === true};
 }
 export function select(items: Resource[], query: string, filters: Record<string, string>, sort: FolderConfig['sort']): Resource[] {
   const words = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
-  return items.filter(r => words.every(w => [r.title, r.description, r.path, r.content || '', ...r.tags, ...r.type, ...r.status, ...r.program].join(' ').toLocaleLowerCase().includes(w)) &&
+  return items.filter(r => words.every(w => [r.title, r.description, r.path, r.content || '', r.due || '', r.project || '', ...r.tags, ...r.type, ...r.status, ...r.program].join(' ').toLocaleLowerCase().includes(w)) &&
     Object.entries(filters).every(([k,v]) => !v || (['type','status','program','tags'].includes(k) && (r[k as 'type'] as string[]).includes(v))))
     .sort((a,b) => sort === 'modified' ? b.mtime-a.mtime || a.path.localeCompare(b.path) : sort === 'status' ? a.status.join().localeCompare(b.status.join()) || a.title.localeCompare(b.title) : a.title.localeCompare(b.title, undefined, {numeric:true}));
 }
