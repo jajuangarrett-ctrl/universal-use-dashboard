@@ -1,7 +1,7 @@
 {
   "id": "universal-use-dashboard",
   "name": "FJG Universal Dashboard",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "minAppVersion": "1.10.0",
   "description": "Live Resource Hub, Program, Notion-style tabs, and PDF Budget dashboards with document-content search.",
   "author": "Franklin Garrett",

@@ -59,7 +59,7 @@ export function strings(value: unknown): string[] {
   return typeof value === 'string' || typeof value === 'number' ? [String(value)] : [];
 }
 export interface Resource {
-  content?: string; contentError?: string; path: string; title: string; description: string; icon: string; image: string;
+  content?: string; contentError?: string; hasAttachments?: boolean; path: string; title: string; description: string; icon: string; image: string;
   type: string[]; status: string[]; program: string[]; tags: string[];
   mtime: number; featured: boolean; pinned: boolean;
 }
@@ -84,4 +84,22 @@ export function safeName(name: string): string {
 
 export function excerpt(r:Resource,query:string):string {
  const text=(r.content||'').replace(/\s+/g,' ');const word=query.trim().toLocaleLowerCase().split(/\s+/).find(w=>text.toLocaleLowerCase().includes(w));if(!word)return '';const index=text.toLocaleLowerCase().indexOf(word);return (index>70?'…':'')+text.slice(Math.max(0,index-70),index+190)+(index+190<text.length?'…':'');
+}
+
+export const NOTION_TABS = ['Content', 'Tasks', 'Meetings', 'Attachments', 'HTML', 'Pinned', 'Folders'] as const;
+export function isAttachmentPath(path:string):boolean {
+ const extension=path.split('.').at(-1)?.toLowerCase();
+ return Boolean(extension&&!['md','markdown','html','htm','base'].includes(extension));
+}
+export function inNotionTab(r:Resource,tab:string,folder:string):boolean {
+ if(!within(r.path,folder))return false;
+ const relative=folder==='/'?r.path:r.path.slice(folder.length+1);
+ // Only folder names within this dashboard, including the dashboard folder itself.
+ const folders=[...(folder==='/'?[]:[folder.split('/').at(-1)!]),...relative.split('/').slice(0,-1)];
+ if(tab==='Tasks')return folders.some(name=>name.toLowerCase().includes('task'));
+ if(tab==='Meetings')return folders.some(name=>name.trim().toLowerCase()==='meeting notes');
+ if(tab==='Attachments')return Boolean(r.hasAttachments)||isAttachmentPath(r.path);
+ if(tab==='HTML')return /\.html?$/i.test(r.path);
+ if(tab==='Pinned')return r.pinned;
+ return tab==='Content';
 }

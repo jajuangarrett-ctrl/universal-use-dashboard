@@ -3,7 +3,7 @@ import { Tabbed, BudgetSource } from './tabbed';
 import { parseBudget } from './budget';
 import { Portal } from './portal';
 import { App, BasesView, Component, FuzzySuggestModal, MarkdownRenderer, Menu, Modal, Notice, Plugin, PluginSettingTab, QueryController, Setting, TAbstractFile, TFile, TFolder, debounce, normalizePath, parseYaml, setIcon } from 'obsidian';
-import { BASE, CONFIG, VIEW, FolderConfig, Layout, Resource, Section, ancestors, baseDocument, defaults, inherited, join, parseConfig, resource, safeName, select, within, excerpt } from './model';
+import { BASE, CONFIG, VIEW, FolderConfig, Layout, Resource, Section, ancestors, baseDocument, defaults, inherited, join, parseConfig, resource, safeName, select, within, excerpt, isAttachmentPath } from './model';
 
 type Companion = { openVaultVoice?: (context: {folder: string; note: string}) => void };
 type InternalApp = App & {plugins: {getPlugin(id:string): Companion | undefined}; internalPlugins: {getPluginById(id:string): {enabled?:boolean;instance?:any} | undefined}};
@@ -211,6 +211,11 @@ class DashboardView extends BasesView {
    if(seen.has(f.path)||[BASE,CONFIG].includes(f.name)||!within(f.path,path,this.cfg.descendants))continue;
    seen.add(f.path);const fm=this.app.metadataCache.getFileCache(f)?.frontmatter||{};
    const r=resource(f.path,f.basename,f.extension,f.stat.mtime,fm);
+   const cache=this.app.metadataCache.getFileCache(f);
+   r.hasAttachments=[...(cache?.links||[]),...(cache?.embeds||[])].some(link=>{
+    const target=this.app.metadataCache.getFirstLinkpathDest(link.link.split('#')[0],f.path);
+    return Boolean(target&&isAttachmentPath(target.path));
+   });
    const inline=this.app.metadataCache.getFileCache(f)?.tags?.map(x=>x.tag.replace(/^#/,''))||[];r.tags=[...new Set([...r.tags,...inline])];
    const relative=f.path.slice(path==='/'?0:path.length+1);r.pinned ||= this.cfg.pinned.includes(relative);r.featured ||= this.cfg.featured.includes(relative);items.push(r);
   }

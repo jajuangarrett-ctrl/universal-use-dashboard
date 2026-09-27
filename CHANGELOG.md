@@ -1,3 +1,9 @@
+## 0.3.1 — 2026-09-27
+
+- Match Notion Tasks by folder names containing Task, including nested contents.
+- Restrict Meetings to Meeting Notes folders rather than note titles or types.
+- Add Attachments (files and notes linking/embedding local attachments) and HTML tabs.
+
 ## 0.3.0 — 2026-09-27
 
 - Add Notion-style tabbed and source-backed PDF Budget templates.

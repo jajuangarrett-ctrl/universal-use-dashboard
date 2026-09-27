@@ -1,4 +1,4 @@
-import { Resource, select, excerpt } from './model';
+import { Resource, select, excerpt, NOTION_TABS, inNotionTab } from './model';
 import { PortalData, PortalActions } from './portal';
 import { BudgetReport, currency } from './budget';
 export interface BudgetSource {path:string;report?:BudgetReport;error?:string}
@@ -14,14 +14,14 @@ export class Tabbed {
   this.status=this.host.createDiv({cls:'uud-content-status',attr:{role:'status'}});
   this.nav=this.host.createDiv({cls:'uud-notion-tabs',attr:{role:'tablist','aria-label':'Dashboard views'}});this.main=this.host.createDiv({cls:'uud-notion-panel',attr:{role:'tabpanel',id:'uud-panel-'+Math.random().toString(36).slice(2)}});this.tabs();this.render();
  }
- private tabs(){const labels=this.data.config.template==='budget'?['Overview',...this.budgets.map(b=>b.path)]:['Content','Tasks','Meetings','Pinned','Folders'];if(!labels.includes(this.active))this.active=labels[0];this.nav.empty();
+ private tabs(){const labels=this.data.config.template==='budget'?['Overview',...this.budgets.map(b=>b.path)]:[...NOTION_TABS];if(!labels.includes(this.active))this.active=labels[0];this.nav.empty();
   for(const value of labels){const source=this.budgets.find(b=>b.path===value);const label=source?(source.report?.title.split(' Budgets')[0]||value.split('/').at(-1)!.replace(/\.pdf$/i,'')):value;const b=this.btn(this.nav,label,()=>{this.active=value;this.page=0;this.tabs();this.render();});b.setAttribute('role','tab');b.setAttribute('aria-selected',String(value===this.active));b.setAttribute('aria-controls',this.main.id);b.tabIndex=value===this.active?0:-1;b.onkeydown=e=>{const idx=labels.indexOf(value);let next=idx;if(e.key==='ArrowRight')next=(idx+1)%labels.length;else if(e.key==='ArrowLeft')next=(idx+labels.length-1)%labels.length;else if(e.key==='Home')next=0;else if(e.key==='End')next=labels.length-1;else return;e.preventDefault();this.active=labels[next];this.tabs();this.render();(this.nav.children[next] as HTMLElement).focus();};}
  }
  private render(){this.main.empty();this.status.setText(this.data.items.some(r=>r.content===undefined)?'Reading document contents…':`${this.data.items.length} resources · Search includes notes, PDFs, and embedded documents`);
   const failed=this.data.items.filter(r=>r.contentError);if(failed.length)this.main.createEl('p',{cls:'uud-import-warning',text:`Text unavailable or incomplete for ${failed.length} resource(s): ${failed.map(r=>r.title+': '+r.contentError).join('; ')}`});
   if(this.data.config.template==='budget'){this.renderBudgets();return;}
   if(this.active==='Folders'){if(!this.data.folders.length)this.main.createEl('p',{text:'No subfolders yet.'});for(const f of this.data.folders)this.btn(this.main,'▱ '+f.name,()=>this.actions.openFolder(f.path),'uud-notion-folder');return;}
-  const items=select(this.data.items,this.query,this.data.config.filters,this.data.config.sort).filter(r=>this.active==='Pinned'?r.pinned:this.active==='Tasks'?r.type.some(t=>/task/i.test(t))||/(^|\/)tasks?\//i.test(r.path):this.active==='Meetings'?r.type.some(t=>/meeting/i.test(t))||/meeting/i.test(r.title):true);
+  const items=select(this.data.items,this.query,this.data.config.filters,this.data.config.sort).filter(r=>inNotionTab(r,this.active,this.data.folder));
   this.main.createEl('p',{cls:'uud-muted',text:`${items.length} ${this.active.toLowerCase()} resource${items.length===1?'':'s'}`});if(!items.length){this.main.createEl('p',{text:'No matching resources. Try another tab or search.'});return;}
   const wrap=this.main.createDiv('uud-table-scroll');const table=wrap.createEl('table',{cls:'uud-notion-table'});const tr=table.createEl('thead').createEl('tr');for(const label of ['Name','Type','Status','Updated','Actions'])tr.createEl('th',{text:label,attr:{scope:'col'}});
   const body=table.createEl('tbody');const size=this.data.pageSize;this.page=Math.min(this.page,Math.max(0,Math.ceil(items.length/size)-1));for(const r of items.slice(this.page*size,(this.page+1)*size)){const row=body.createEl('tr');const name=row.createEl('td');this.btn(name,'▧ '+r.title,()=>this.actions.open(r),'uud-notion-title');const match=excerpt(r,this.query);if(match)name.createEl('p',{cls:'uud-match',text:match});row.createEl('td',{text:r.type.join(', ')});const status=row.createEl('td');for(const s of r.status)status.createSpan({cls:'uud-notion-badge',text:s});row.createEl('td',{text:new Date(r.mtime).toLocaleDateString()});const b=this.btn(row.createEl('td'),'•••',()=>this.actions.menu(b,r));b.setAttribute('aria-label','Actions for '+r.title);}
